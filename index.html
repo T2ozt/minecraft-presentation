@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft Technical Art Systems</title>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:wght@400;500;600&family=Google+Sans+Code&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ff-sans: 'Google Sans Flex', sans-serif;
+            --ff-mono: 'Google Sans Code', monospace;
+            --ff-pixel: 'Press Start 2P', monospace;
+
+            --lumi-sys-shape--small: 8px;
+            --lumi-sys-shape--medium: 12px;
+            --lumi-sys-shape--full: 999px;
+
+            --lumi-sys-color--surface: rgba(26, 32, 53, 0.95);
+            --lumi-sys-color--surface-dim: rgba(18, 22, 38, 0.9);
+            --lumi-sys-color--surface-bright: #1c2438;
+            --lumi-sys-color--on-surface: #ffffff;
+            --lumi-sys-color--on-surface-variant: rgba(255, 255, 255, 0.7);
+            --lumi-sys-color--primary: #55ff55;
+            --lumi-sys-color--stroke-default: rgba(255, 255, 255, 0.2);
+            --lumi-sys-color--positive: #55ff55;
+            --lumi-sys-color--accent-container: rgba(85, 255, 85, 0.15);
+        }
+
+        html, body {
+            width: 100%;
+            height: 100vh;
+            background: #63a4ff !important; /* Canva slaytındaki açık mavi gökyüzü */
+            color: var(--lumi-sys-color--on-surface) !important;
+            overflow: hidden !important; /* Kaydırma çubuklarını tamamen engeller */
+            margin: 0;
+            padding: 0;
+            font-family: var(--ff-sans);
+            box-sizing: border-box;
+        }
+
+        /* Alttaki Minecraft Çim-Toprak Şeridi */
+        body::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 45px;
+            background-color: #5d8e38;
+            border-top: 6px solid #456b26;
+            background-image: linear-gradient(90deg, rgba(0,0,0,0.15) 50%, transparent 50%), linear-gradient(0deg, #866043 0%, #866043 100%);
+            background-size: 20px 20px;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .widget-container {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            max-width: 660px;
+            margin: 0 auto;
+            padding: 10px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .widget-card {
+            background: var(--lumi-sys-color--surface);
+            border-radius: var(--lumi-sys-shape--medium);
+            padding: 12px;
+            border: 2px solid var(--lumi-sys-color--primary);
+            box-shadow: 4px 4px #000000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .header-group h2 {
+            font-family: var(--ff-pixel);
+            font-size: 10px;
+            margin: 0 0 4px 0;
+            color: #ffffff;
+            text-shadow: 2px 2px #000000;
+            text-align: center;
+        }
+
+        .header-group p {
+            margin: 0;
+            font-size: 10px;
+            color: var(--lumi-sys-color--on-surface-variant);
+            text-align: center;
+        }
+
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        @media (max-width: 520px) {
+            .grid-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-box {
+            background: var(--lumi-sys-color--surface-dim);
+            border-radius: var(--lumi-sys-shape--small);
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .viz-wrapper {
+            position: relative;
+            width: 100%;
+            height: 190px;
+            background: #050814;
+            border-radius: var(--lumi-sys-shape--small);
+            border: 2px solid #ffffff;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        canvas.viz-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+        }
+
+        .kpi-row {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .kpi-card {
+            flex: 1;
+            min-width: 80px;
+            background: var(--lumi-sys-color--surface-bright);
+            padding: 6px;
+            border-radius: var(--lumi-sys-shape--small);
+            border: 1px solid var(--lumi-sys-color--stroke-default);
+            text-align: center;
+        }
+
+        .kpi-value {
+            font-family: var(--ff-mono);
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--lumi-sys-color--primary);
+        }
+
+        .kpi-label {
+            font-size: 10px;
+            color: var(--lumi-sys-color--on-surface-variant);
+            margin-top: 2px;
+        }
+
+        .preset-chips {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .code-snippet {
+            font-family: var(--ff-mono);
+            font-size: 10px;
+            background: #000000;
+            color: #ffffff;
+            padding: 6px;
+            border-radius: var(--lumi-sys-shape--small);
+            border: 1px solid var(--lumi-sys-color--stroke-default);
+            white-space: pre-wrap;
+            word-break: break-all;
+            line-height: 1.3;
+        }
+
+        .code-highlight {
+            color: var(--lumi-sys-color--primary);
+            font-weight: bold;
+        }
+
+        .badge-pill {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: var(--lumi-sys-shape--full);
+            font-size: 9px;
+            font-weight: 600;
+            background: var(--lumi-sys-color--accent-container);
+            color: var(--lumi-sys-color--primary);
+        }
+
+        .lumi-segmented-group {
+            display: flex;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 3px;
+            border-radius: var(--lumi-sys-shape--full);
+            gap: 4px;
+        }
+
+        .lumi-segmented-btn {
+            flex: 1;
+            padding: 6px 8px;
+            border: none;
+            border-radius: var(--lumi-sys-shape--full);
+            background: transparent;
+            font-family: var(--ff-sans);
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--lumi-sys-color--on-surface-variant);
+            transition: 0.2s;
+            text-align: center;
+        }
+
+        .lumi-segmented-btn.is-selected {
+            background: var(--lumi-sys-color--primary);
+            color: #000000;
+            box-shadow: 0 2px 6px rgba(85,255,85,0.4);
+        }
+
+        .lumi-btn {
+            background: #3b82f6;
+            color: #ffffff;
+            border: 2px solid #1d4ed8;
+            padding: 6px 10px;
+            border-radius: var(--lumi-sys-shape--full);
+            font-family: var(--ff-sans);
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .lumi-btn:hover { background: #2563eb; }
+
+        .lumi-chip {
+            padding: 3px 8px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid transparent;
+            border-radius: var(--lumi-sys-shape--full);
+            font-size: 10px;
+            color: #fff;
+            cursor: pointer;
+        }
+        .lumi-chip.is-active {
+            background: var(--lumi-sys-color--primary);
+            color: #000;
+            font-weight: bold;
+        }
+
+        .lumi-slider-row {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .lumi-slider-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .lumi-slider {
+            flex: 1;
+            cursor: pointer;
+        }
+        .lumi-slider-value {
+            min-width: 40px;
+            padding: 3px 6px;
+            background: #000;
+            border-radius: 4px;
+            font-family: var(--ff-mono);
+            font-size: 11px;
+            text-align: center;
+            color: var(--lumi-sys-color--primary);
+        }
+
+        .lumi-switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 22px;
+            cursor: pointer;
+        }
+        .lumi-switch input { opacity: 0; width: 0; height: 0; }
+        .lumi-switch__track {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #333;
+            transition: .3s;
+            border-radius: 22px;
+            border: 1px solid #777;
+        }
+        .lumi-switch__track:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+        .lumi-switch input:checked + .lumi-switch__track {
+            background-color: var(--lumi-sys-color--primary);
+            border-color: var(--lumi-sys-color--primary);
+        }
+        .lumi-switch input:checked + .lumi-switch__track:before {
+            transform: translateX(18px);
+            background-color: #000;
+        }
+    </style>
+</head>
+<body>
+
+  <div class="widget-container">
+    <!-- Header -->
+    <div class="widget-card">
+      <div class="header-group">
+        <h2>PRODUCTION TECH ART</h2>
+        <p>Code Driven Characters, Biome Tinting & Rendering Optimization</p>
+      </div>
+
+      <!-- Segmented Tab Navigation -->
+      <div class="lumi-segmented-group">
+        <button id="tab-btn-1" class="lumi-segmented-btn is-selected" onclick="switchTab(1)">1. ModelRenderer & Creeper</button>
+        <button id="tab-btn-2" class="lumi-segmented-btn" onclick="switchTab(2)">2. grasscolor.png Biome</button>
+        <button id="tab-btn-3" class="lumi-segmented-btn" onclick="switchTab(3)">3. Face Culling & Lighting</button>
+      </div>
+    </div>
+
+    <!-- TAB 1: ModelRenderer & Creeper Bug -->
+    <div id="tab-content-1" class="widget-card">
+      <div class="grid-layout">
+        <div class="panel-box">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 12px; font-weight: bold;">Model Matrix Box</span>
+            <span id="model-mode-badge" class="badge-pill">Pig Model</span>
+          </div>
+          
+          <p style="font-size: 10px; margin: 0; color: var(--lumi-sys-color--on-surface-variant);">
+            In early development, Notch accidentally mixed up Y and Z parameters while coding the Pig. Swapping dimensions spawned the iconic Creeper.
+          </p>
+
+          <div class="code-snippet" id="code-tab1">
+// ModelRenderer.addBox(x, y, z, w, h, d)
+body = new ModelRenderer(this, 28, 8);
+body.addBox(-4.0F, -2.0F, -8.0F, <span class="code-highlight">10, 8, 16</span>);
+          </div>
+
+          <button class="lumi-btn" id="swap-axes-btn" onclick="toggleAxesSwap()">
+            Swap Y & Z Axes (Pig → Creeper)
+          </button>
+
+          <div class="lumi-slider-row" style="margin-top: 2px;">
+            <label style="font-size: 10px;" for="walk-speed">Walk Speed (&omega;)</label>
+            <div class="lumi-slider-container">
+              <input type="range" id="walk-speed" class="lumi-slider" data-key="walkSpeed" min="0" max="2" step="0.1" value="0.5">
+              <div id="walk-speed-val" class="lumi-slider-value">0.5</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-box" style="padding: 0;">
+          <div class="viz-wrapper">
+            <canvas id="canvas-tab1" class="viz-canvas"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: Biome Tinting & grasscolor.png -->
+    <div id="tab-content-2" class="widget-card" style="display: none;">
+      <div class="grid-layout">
+        <div class="panel-box">
+          <span style="font-size: 12px; font-weight: bold;">Temp & Rainfall Color Mapping</span>
+          <p style="font-size: 10px; margin: 0; color: var(--lumi-sys-color--on-surface-variant);">
+            Grass & leaves are grayscale. Biomes sample a color multiplier from <code>grasscolor.png</code> gradient: <code>R<sub>adj</sub> = R &times; T</code>.
+          </p>
+
+          <div class="preset-chips">
+            <button class="lumi-chip is-active" id="chip-plains" onclick="setBiomePreset('plains')">Plains</button>
+            <button class="lumi-chip" id="chip-desert" onclick="setBiomePreset('desert')">Desert</button>
+            <button class="lumi-chip" id="chip-taiga" onclick="setBiomePreset('taiga')">Taiga</button>
+            <button class="lumi-chip" id="chip-jungle" onclick="setBiomePreset('jungle')">Jungle</button>
+          </div>
+
+          <div class="lumi-slider-row">
+            <label style="font-size: 10px;" for="temp-slider">Temperature (T)</label>
+            <div class="lumi-slider-container">
+              <input type="range" id="temp-slider" class="lumi-slider" data-key="temperature" min="0" max="1" step="0.05" value="0.8">
+              <div id="temp-slider-val" class="lumi-slider-value">0.80</div>
+            </div>
+          </div>
+
+          <div class="lumi-slider-row">
+            <label style="font-size: 10px;" for="rain-slider">Rainfall (R)</label>
+            <div class="lumi-slider-container">
+              <input type="range" id="rain-slider" class="lumi-slider" data-key="rainfall" min="0" max="1" step="0.05" value="0.4">
+              <div id="rain-slider-val" class="lumi-slider-value">0.40</div>
+            </div>
+          </div>
+
+          <div class="kpi-row">
+            <div class="kpi-card">
+              <div id="kpi-color-swatch" style="height: 12px; border-radius: 4px; margin-bottom: 2px; background: #80b453;"></div>
+              <div class="kpi-label">Sampled RGB</div>
+              <div class="kpi-value" id="kpi-rgb-text" style="font-size: 11px;">#80B453</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-box" style="padding: 0;">
+          <div class="viz-wrapper" style="flex-direction: column; gap: 0;">
+            <canvas id="canvas-tab2" class="viz-canvas"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: Face Culling & Smooth Lighting -->
+    <div id="tab-content-3" class="widget-card" style="display: none;">
+      <div class="grid-layout">
+        <div class="panel-box">
+          <span style="font-size: 12px; font-weight: bold;">Camera Optimization & Lighting</span>
+          <p style="font-size: 10px; margin: 0; color: var(--lumi-sys-color--on-surface-variant);">
+            Hidden polygon faces occluded by neighbors are culled to boost FPS. Smooth Lighting blends ambient light across block vertices.
+          </p>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2px;">
+            <span style="font-size: 11px; font-weight: 500;">Hidden Face Culling</span>
+            <label class="lumi-switch">
+              <input type="checkbox" id="culling-toggle" checked onchange="toggleCulling(this.checked)">
+              <span class="lumi-switch__track"></span>
+            </label>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 11px; font-weight: 500;">Smooth Lighting (AO)</span>
+            <label class="lumi-switch">
+              <input type="checkbox" id="smooth-toggle" checked onchange="toggleSmooth(this.checked)">
+              <span class="lumi-switch__track"></span>
+            </label>
+          </div>
+
+          <div class="kpi-row" style="margin-top: 4px;">
+            <div class="kpi-card">
+              <div class="kpi-value" id="kpi-polys">54</div>
+              <div class="kpi-label">Drawn Faces</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-value" id="kpi-savings" style="color: var(--lumi-sys-color--positive);">66.7%</div>
+              <div class="kpi-label">Poly Savings</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-box" style="padding: 0;">
+          <div class="viz-wrapper">
+            <canvas id="canvas-tab3" class="viz-canvas"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      activeTab: 1,
+      isSwapped: false,
+      walkSpeed: 0.5,
+      animTime: 0,
+      temperature: 0.8,
+      rainfall: 0.4,
+      cullingEnabled: true,
+      smoothLightingEnabled: true
+    };
+
+    let animationFrameId = null;
+
+    function switchTab(tabNum) {
+      state.activeTab = tabNum;
+      for (let i = 1; i <= 3; i++) {
+        const btn = document.getElementById(`tab-btn-${i}`);
+        const content = document.getElementById(`tab-content-${i}`);
+        if (i === tabNum) {
+          btn.classList.add('is-selected');
+          content.style.display = 'block';
+        } else {
+          btn.classList.remove('is-selected');
+          content.style.display = 'none';
+        }
+      }
+      updateViz();
+    }
+
+    function toggleAxesSwap() {
+      state.isSwapped = !state.isSwapped;
+      const badge = document.getElementById('model-mode-badge');
+      const codeBlock = document.getElementById('code-tab1');
+      const btn = document.getElementById('swap-axes-btn');
+
+      if (state.isSwapped) {
+        if (badge) badge.textContent = 'Creeper Bug Model';
+        badge.style.background = 'rgba(255, 85, 85, 0.2)';
+        badge.style.color = '#ff5555';
+        if (btn) btn.textContent = 'Restore Axes (Creeper → Pig)';
+        if (codeBlock) codeBlock.innerHTML = `// ModelRenderer.addBox(x, y, z, w, h, d)
+body = new ModelRenderer(this, 16, 16);
+// Y and Z dimensions swapped!
+body.addBox(-4.0F, -12.0F, -4.0F, <span class="code-highlight">8, 16, 8</span>);`;
+      } else {
+        if (badge) badge.textContent = 'Pig Model';
+        badge.style.background = 'rgba(85, 255, 85, 0.15)';
+        badge.style.color = '#55ff55';
+        if (btn) btn.textContent = 'Swap Y & Z Axes (Pig → Creeper)';
+        if (codeBlock) codeBlock.innerHTML = `// ModelRenderer.addBox(x, y, z, w, h, d)
+body = new ModelRenderer(this, 28, 8);
+body.addBox(-4.0F, -2.0F, -8.0F, <span class="code-highlight">10, 8, 16</span>);`;
+      }
+      updateViz();
+    }
+
+    function setBiomePreset(type) {
+      document.querySelectorAll('.preset-chips .lumi-chip').forEach(c => c.classList.remove('is-active'));
+      const chip = document.getElementById(`chip-${type}`);
+      if (chip) chip.classList.add('is-active');
+
+      if (type === 'plains') { state.temperature = 0.8; state.rainfall = 0.4; }
+      else if (type === 'desert') { state.temperature = 1.0; state.rainfall = 0.0; }
+      else if (type === 'taiga') { state.temperature = 0.25; state.rainfall = 0.8; }
+      else if (type === 'jungle') { state.temperature = 0.95; state.rainfall = 0.9; }
+
+      const tSlider = document.getElementById('temp-slider');
+      const rSlider = document.getElementById('rain-slider');
+      tSlider.value = state.temperature;
+      rSlider.value = state.rainfall;
+
+      document.getElementById('temp-slider-val').textContent = state.temperature.toFixed(2);
+      document.getElementById('rain-slider-val').textContent = state.rainfall.toFixed(2);
+
+      updateViz();
+    }
+
+    function toggleCulling(val) {
+      state.cullingEnabled = val;
+      updateViz();
+    }
+
+    function toggleSmooth(val) {
+      state.smoothLightingEnabled = val;
+      updateViz();
+    }
+
+    function projectIso(x, y, z, originX, originY, scale = 12) {
+      const isoX = originX + (x - z) * Math.cos(Math.PI / 6) * scale;
+      const isoY = originY + (x + z) * Math.sin(Math.PI / 6) * scale - y * scale;
+      return { x: isoX, y: isoY };
+    }
+
+    function drawIsoBox(ctx, x, y, z, w, h, d, originX, originY, scale, colors) {
+      const p010 = projectIso(x, y + h, z, originX, originY, scale);
+      const p110 = projectIso(x + w, y + h, z, originX, originY, scale);
+      const p011 = projectIso(x, y + h, z + d, originX, originY, scale);
+      const p111 = projectIso(x + w, y + h, z + d, originX, originY, scale);
+      const p001 = projectIso(x, y, z + d, originX, originY, scale);
+      const p101 = projectIso(x + w, y, z + d, originX, originY, scale);
+      const p100 = projectIso(x + w, y, z, originX, originY, scale);
+
+      ctx.fillStyle = colors.top;
+      ctx.beginPath();
+      ctx.moveTo(p010.x, p010.y); ctx.lineTo(p110.x, p110.y);
+      ctx.lineTo(p111.x, p111.y); ctx.lineTo(p011.x, p011.y);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+
+      ctx.fillStyle = colors.left;
+      ctx.beginPath();
+      ctx.moveTo(p001.x, p001.y); ctx.lineTo(p011.x, p011.y);
+      ctx.lineTo(p111.x, p111.y); ctx.lineTo(p101.x, p101.y);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+
+      ctx.fillStyle = colors.right;
+      ctx.beginPath();
+      ctx.moveTo(p100.x, p100.y); ctx.lineTo(p110.x, p110.y);
+      ctx.lineTo(p111.x, p111.y); ctx.lineTo(p101.x, p101.y);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+
+    function renderTab1() {
+      const canvas = document.getElementById('canvas-tab1');
+      if (!canvas) return;
+      const box = canvas.parentElement;
+      const dpr = window.devicePixelRatio || 1;
+      const w = box.clientWidth || 300;
+      const h = box.clientHeight || 190;
+
+      if (canvas.width !== Math.floor(w * dpr) || canvas.height !== Math.floor(h * dpr)) {
+        canvas.width = Math.floor(w * dpr);
+        canvas.height = Math.floor(h * dpr);
+      }
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+      ctx.lineWidth = 1;
+
+      const originX = w / 2;
+      const originY = h / 2 + 20;
+      const scale = 4.5;
+
+      const legAngle = Math.cos(state.animTime * state.walkSpeed * 5) * 0.6;
+
+      if (!state.isSwapped) {
+        const pinkBody = { top: '#f4a6bc', left: '#e0839e', right: '#c86c87' };
+        const pinkHead = { top: '#ffb3c8', left: '#eb8fad', right: '#d27997' };
+        const pinkLeg = { top: '#d27997', left: '#b85e7b', right: '#a04865' };
+
+        drawIsoBox(ctx, -5, 4, -8, 10, 8, 16, originX, originY, scale, pinkBody);
+        drawIsoBox(ctx, -4, 6, -14, 8, 8, 6, originX, originY, scale, pinkHead);
+        drawIsoBox(ctx, -2, 6, -16, 4, 3, 2, originX, originY, scale, pinkHead);
+
+        const legH = 6;
+        const frontLeftZ = -6 + Math.sin(legAngle) * 2;
+        const frontRightZ = -6 - Math.sin(legAngle) * 2;
+        const backLeftZ = 5 - Math.sin(legAngle) * 2;
+        const backRightZ = 5 + Math.sin(legAngle) * 2;
+
+        drawIsoBox(ctx, -4.5, -2, frontLeftZ, 3, legH, 3, originX, originY, scale, pinkLeg);
+        drawIsoBox(ctx, 1.5, -2, frontRightZ, 3, legH, 3, originX, originY, scale, pinkLeg);
+        drawIsoBox(ctx, -4.5, -2, backLeftZ, 3, legH, 3, originX, originY, scale, pinkLeg);
+        drawIsoBox(ctx, 1.5, -2, backRightZ, 3, legH, 3, originX, originY, scale, pinkLeg);
+      } else {
+        const greenBody = { top: '#55ac55', left: '#3f8c3f', right: '#2e6f2e' };
+        const greenHead = { top: '#63bd63', left: '#4a9c4a', right: '#367e36' };
+        const greenLeg = { top: '#367e36', left: '#276227', right: '#1a491a' };
+
+        drawIsoBox(ctx, -4, 18, -4, 8, 8, 8, originX, originY, scale, greenHead);
+        drawIsoBox(ctx, -4, 2, -4, 8, 16, 8, originX, originY, scale, greenBody);
+
+        const legOffset1 = Math.sin(legAngle) * 1.5;
+        const legOffset2 = -Math.sin(legAngle) * 1.5;
+
+        drawIsoBox(ctx, -4.5, -4, -4.5 + legOffset1, 4, 6, 4, originX, originY, scale, greenLeg);
+        drawIsoBox(ctx, 0.5, -4, -4.5 + legOffset2, 4, 6, 4, originX, originY, scale, greenLeg);
+        drawIsoBox(ctx, -4.5, -4, 0.5 + legOffset2, 4, 6, 4, originX, originY, scale, greenLeg);
+        drawIsoBox(ctx, 0.5, -4, 0.5 + legOffset1, 4, 6, 4, originX, originY, scale, greenLeg);
+      }
+    }
+
+    function sampleGrassColor(T, R) {
+      const temp = Math.max(0, Math.min(1, T));
+      const rain = Math.max(0, Math.min(1, R)) * temp;
+      const r = Math.round((1 - temp) * 138 + temp * (rain * 89 + (1 - rain) * 191));
+      const g = Math.round((1 - temp) * 182 + temp * (rain * 201 + (1 - rain) * 183));
+      const b = Math.round((1 - temp) * 137 + temp * (rain * 60 + (1 - rain) * 85));
+      return { r, g, b, hex: `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}` };
+    }
+
+    function renderTab2() {
+      const canvas = document.getElementById('canvas-tab2');
+      if (!canvas) return;
+      const box = canvas.parentElement;
+      const dpr = window.devicePixelRatio || 1;
+      const w = box.clientWidth || 300;
+      const h = box.clientHeight || 190;
+
+      if (canvas.width !== Math.floor(w * dpr) || canvas.height !== Math.floor(h * dpr)) {
+        canvas.width = Math.floor(w * dpr);
+        canvas.height = Math.floor(h * dpr);
+      }
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+
+      const sampled = sampleGrassColor(state.temperature, state.rainfall);
+      
+      document.getElementById('kpi-color-swatch').style.background = sampled.hex;
+      document.getElementById('kpi-rgb-text').textContent = sampled.hex.toUpperCase();
+
+      const triWidth = Math.min(110, w * 0.4);
+      const triHeight = triWidth;
+      const triX = 12;
+      const triY = (h - triHeight) / 2 + 10;
+
+      ctx.save();
+      for (let y = 0; y < triHeight; y += 3) {
+        for (let x = 0; x < triWidth - y; x += 3) {
+          const t = 1 - (x / triWidth);
+          const r = 1 - (y / triHeight);
+          const c = sampleGrassColor(t, r);
+          ctx.fillStyle = c.hex;
+          ctx.fillRect(triX + x, triY + y, 3, 3);
+        }
+      }
+
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.font = "8px monospace";
+      ctx.fillText("Temperature (T) →", triX, triY - 4);
+
+      const cursorX = triX + (1 - state.temperature) * triWidth;
+      const cursorY = triY + (1 - state.rainfall * state.temperature) * triHeight;
+
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cursorX, cursorY, 4, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = '#000000';
+      ctx.beginPath();
+      ctx.arc(cursorX, cursorY, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      const blockOriginX = w * 0.75;
+      const blockOriginY = h / 2 + 15;
+      const scale = 3.8;
+
+      const topColor = sampled.hex;
+      const sideTint = `rgba(${sampled.r}, ${sampled.g}, ${sampled.b}, 0.85)`;
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+
+      drawIsoBox(ctx, -8, -8, -8, 16, 12, 16, blockOriginX, blockOriginY, scale, {
+        top: '#866043', left: '#684830', right: '#573d28'
+      });
+
+      drawIsoBox(ctx, -8.1, 4, -8.1, 16.2, 4.2, 16.2, blockOriginX, blockOriginY, scale, {
+        top: topColor, left: sideTint, right: sideTint
+      });
+    }
+
+    function renderTab3() {
+      const canvas = document.getElementById('canvas-tab3');
+      if (!canvas) return;
+      const box = canvas.parentElement;
+      const dpr = window.devicePixelRatio || 1;
+      const w = box.clientWidth || 300;
+      const h = box.clientHeight || 190;
+
+      if (canvas.width !== Math.floor(w * dpr) || canvas.height !== Math.floor(h * dpr)) {
+        canvas.width = Math.floor(w * dpr);
+        canvas.height = Math.floor(h * dpr);
+      }
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+
+      const originX = w / 2;
+      const originY = h / 2 + 20;
+      const scale = 1.8;
+
+      let totalPolysDrawn = 0;
+      const totalPossiblePolys = 3 * 3 * 3 * 6;
+
+      for (let x = 0; x < 3; x++) {
+        for (let y = 0; y < 3; y++) {
+          for (let z = 0; z < 3; z++) {
+            const isTopExposed = (y === 2) || !state.cullingEnabled;
+            const isLeftExposed = (z === 2) || !state.cullingEnabled;
+            const isRightExposed = (x === 2) || !state.cullingEnabled;
+
+            if (state.cullingEnabled) {
+              if (x < 2 && y < 2 && z < 2) continue;
+            }
+
+            const bx = (x - 1.5) * 8;
+            const by = (y - 1.5) * 8;
+            const bz = (z - 1.5) * 8;
+
+            const aoFactor = state.smoothLightingEnabled ? (0.6 + (y / 3) * 0.4) : 1.0;
+
+            const topCol = `rgb(${Math.round(120 * aoFactor)}, ${Math.round(180 * aoFactor)}, ${Math.round(90 * aoFactor)})`;
+            const leftCol = `rgb(${Math.round(90 * aoFactor)}, ${Math.round(140 * aoFactor)}, ${Math.round(65 * aoFactor)})`;
+            const rightCol = `rgb(${Math.round(70 * aoFactor)}, ${Math.round(110 * aoFactor)}, ${Math.round(50 * aoFactor)})`;
+
+            const p010 = projectIso(bx, by + 8, bz, originX, originY, scale);
+            const p110 = projectIso(bx + 8, by + 8, bz, originX, originY, scale);
+            const p111 = projectIso(bx + 8, by + 8, bz + 8, originX, originY, scale);
+            const p011 = projectIso(bx, by + 8, bz + 8, originX, originY, scale);
+
+            const p001 = projectIso(bx, by, bz + 8, originX, originY, scale);
+            const p101 = projectIso(bx + 8, by, bz + 8, originX, originY, scale);
+            const p100 = projectIso(bx + 8, by, bz, originX, originY, scale);
+
+            ctx.strokeStyle = state.cullingEnabled ? 'rgba(255,255,255,0.2)' : 'rgba(255,85,85,0.6)';
+
+            if (isTopExposed) {
+              ctx.fillStyle = topCol;
+              ctx.beginPath();
+              ctx.moveTo(p010.x, p010.y); ctx.lineTo(p110.x, p110.y);
+              ctx.lineTo(p111.x, p111.y); ctx.lineTo(p011.x, p011.y);
+              ctx.closePath(); ctx.fill(); ctx.stroke();
+              totalPolysDrawn++;
+            }
+
+            if (isLeftExposed) {
+              ctx.fillStyle = leftCol;
+              ctx.beginPath();
+              ctx.moveTo(p001.x, p001.y); ctx.lineTo(p011.x, p011.y);
+              ctx.lineTo(p111.x, p111.y); ctx.lineTo(p101.x, p101.y);
+              ctx.closePath(); ctx.fill(); ctx.stroke();
+              totalPolysDrawn++;
+            }
+
+            if (isRightExposed) {
+              ctx.fillStyle = rightCol;
+              ctx.beginPath();
+              ctx.moveTo(p100.x, p100.y); ctx.lineTo(p110.x, p110.y);
+              ctx.lineTo(p111.x, p111.y); ctx.lineTo(p101.x, p101.y);
+              ctx.closePath(); ctx.fill(); ctx.stroke();
+              totalPolysDrawn++;
+            }
+
+            if (!state.cullingEnabled) {
+              totalPolysDrawn += 3;
+            }
+          }
+        }
+      }
+
+      document.getElementById('kpi-polys').textContent = totalPolysDrawn;
+      const savings = Math.max(0, ((1 - totalPolysDrawn / totalPossiblePolys) * 100)).toFixed(1);
+      document.getElementById('kpi-savings').textContent = `${savings}%`;
+    }
+
+    function updateViz() {
+      if (state.activeTab === 1) renderTab1();
+      else if (state.activeTab === 2) renderTab2();
+      else if (state.activeTab === 3) renderTab3();
+    }
+
+    function animLoop(timestamp) {
+      state.animTime = timestamp * 0.003;
+      if (state.activeTab === 1) {
+        renderTab1();
+      }
+      animationFrameId = requestAnimationFrame(animLoop);
+    }
+
+    function init() {
+      document.querySelectorAll('.lumi-slider').forEach(slider => {
+        slider.addEventListener('input', (e) => {
+          const key = e.target.dataset.key;
+          const val = parseFloat(e.target.value);
+          state[key] = val;
+
+          const valBadge = document.getElementById(`${e.target.id}-val`);
+          if (valBadge) valBadge.textContent = val.toFixed(2);
+
+          updateViz();
+        });
+      });
+
+      updateViz();
+      animationFrameId = requestAnimationFrame(animLoop);
+    }
+
+    init();
+  </script>
+</body>
+</html>
